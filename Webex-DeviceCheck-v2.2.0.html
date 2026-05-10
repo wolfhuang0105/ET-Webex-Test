@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Webex 設備檢測 [v2.2.0]</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23c8462b'/%3E%3Ctext x='50' y='62' font-size='52' text-anchor='middle' fill='white' font-family='monospace' font-weight='bold'%3E%E2%9C%93%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f5f3ee;
+    --bg-elev: #ffffff;
+    --bg-soft: #ebe8e0;
+    --fg: #1a1a1a;
+    --fg-soft: #5a5a5a;
+    --accent: #c8462b;
+    --accent-soft: #e8d5cf;
+    --success: #4a8a4a;
+    --warn: #c8902b;
+    --error: #c83a2b;
+    --border: #d4cfc4;
+    --shadow: 0 1px 0 rgba(0,0,0,0.04), 0 8px 24px -12px rgba(0,0,0,0.12);
+    --scrollbar-thumb: #c4bdac;
+    --scrollbar-track: #ebe8e0;
+  }
+  [data-theme="dark"] {
+    --bg: #161513;
+    --bg-elev: #201e1b;
+    --bg-soft: #2a2724;
+    --fg: #ece8e0;
+    --fg-soft: #9a948a;
+    --accent: #e6694e;
+    --accent-soft: #3a2820;
+    --success: #7ab87a;
+    --warn: #d6a857;
+    --error: #e0594a;
+    --border: #36322c;
+    --shadow: 0 1px 0 rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.6);
+    --scrollbar-thumb: #4a4540;
+    --scrollbar-track: #201e1b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent }
+  html, body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Noto Serif TC', 'Source Han Serif TC', Georgia, serif;
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px }
+  ::-webkit-scrollbar-track { background: var(--scrollbar-track) }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+    border: 2px solid var(--scrollbar-track);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent) }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev);
+  }
+  .brand {
+    font-family: 'Cormorant Garamond', 'Noto Serif TC', serif;
+    font-size: 20px;
+    font-weight: 500;
+  }
+  .brand .dot { color: var(--accent); margin: 0 6px }
+  .brand .ver {
+    font-size: 10px;
+    color: var(--fg-soft);
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    margin-left: 8px;
+    padding: 2px 7px;
+    background: var(--bg-soft);
+    border-radius: 3px;
+  }
+  .theme-btn {
+    background: var(--bg-soft);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .theme-btn:hover { border-color: var(--accent); color: var(--accent) }
+
+  .wrap {
+    max-width: 920px;
+    margin: 32px auto;
+    padding: 0 20px 40px;
+  }
+
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+  }
+
+  h1 {
+    font-family: 'Cormorant Garamond', 'Noto Serif TC', serif;
+    font-weight: 500;
+    font-size: 28px;
+    margin-bottom: 6px;
+  }
+  h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: 20px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .lead {
+    color: var(--fg-soft);
+    font-size: 14px;
+    margin-bottom: 22px;
+    line-height: 1.7;
+  }
+
+  /* Case info banner */
+  .case-banner {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+    align-items: center;
+  }
+  .case-banner .case-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .case-banner .case-value {
+    font-size: 14px;
+    color: var(--fg);
+    font-weight: 500;
+  }
+
+  .summary {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .summary-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .summary-icon.ok { background: var(--success) }
+  .summary-icon.warn { background: var(--warn) }
+  .summary-icon.error { background: var(--error) }
+  .summary-icon.checking { background: var(--fg-soft) }
+  .summary-text { flex: 1 }
+  .summary-text .title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .summary-text .detail {
+    font-size: 13px;
+    color: var(--fg-soft);
+  }
+
+  .item {
+    display: flex;
+    align-items: flex-start;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 14px;
+  }
+  .item:last-child { border-bottom: none }
+  .item-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: #fff;
+    margin-top: 2px;
+  }
+  .item-icon.ok { background: var(--success) }
+  .item-icon.warn { background: var(--warn) }
+  .item-icon.error { background: var(--error) }
+  .item-icon.checking { background: var(--fg-soft) }
+  .item-icon.idle {
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--fg-soft);
+  }
+  .item-body { flex: 1; min-width: 0 }
+  .item-label {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 3px;
+  }
+  .item-value {
+    font-size: 13px;
+    color: var(--fg-soft);
+    font-family: 'JetBrains Mono', monospace;
+    word-break: break-word;
+  }
+  .item-note {
+    font-size: 12px;
+    color: var(--warn);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .item-note.error { color: var(--error) }
+
+  .dl-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  @media (max-width: 600px) { .dl-grid { grid-template-columns: 1fr } }
+  .dl-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--fg);
+    transition: all 0.2s;
+  }
+  .dl-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .dl-btn .dl-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    color: #fff;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .dl-btn .dl-text { flex: 1 }
+  .dl-btn .dl-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .dl-btn .dl-sub {
+    font-size: 11px;
+    color: var(--fg-soft);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .dl-btn.recommended {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .dl-btn.recommended .dl-title::after {
+    content: ' · 推薦';
+    color: var(--accent);
+    font-size: 11px;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .btn {
+    padding: 12px 20px;
+    background: var(--bg-soft);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent) }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed }
+  .btn.primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .btn.primary:hover:not(:disabled) { opacity: 0.9; color: #fff }
+
+  /* Report section */
+  .report-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  @media (max-width: 600px) { .report-actions { grid-template-columns: 1fr } }
+  .report-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    color: var(--fg);
+    transition: all 0.2s;
+  }
+  .report-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .report-btn:disabled { opacity: 0.5; cursor: not-allowed }
+  .report-btn .ic {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    color: #fff;
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+  .report-btn .tx { flex: 1 }
+  .report-btn .tx .t {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .report-btn .tx .s {
+    font-size: 11px;
+    color: var(--fg-soft);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .report-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .report-btn.primary .s { color: rgba(255,255,255,0.85) }
+  .report-btn.primary .ic {
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+  }
+  .report-btn.primary:hover:not(:disabled) {
+    opacity: 0.92;
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .send-status {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: var(--bg);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    display: none;
+  }
+  .send-status.show { display: block }
+  .send-status.ok { border-color: var(--success); color: var(--success) }
+  .send-status.error { border-color: var(--error); color: var(--error) }
+
+  .disclaimer {
+    background: var(--bg);
+    border-left: 3px solid var(--warn);
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--fg-soft);
+    line-height: 1.7;
+    margin-top: 16px;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    padding: 12px 22px;
+    background: var(--success);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 14px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 1000;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0) }
+  .toast.error { background: var(--error) }
+
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--fg-soft);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  @media (pointer: coarse) {
+    .btn { padding: 14px 22px; font-size: 15px }
+    .dl-btn, .report-btn { padding: 18px }
+  }
+
+  /* === 最終驗證卡片 === */
+  .testmeet-info {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+  }
+  .testmeet-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 6px 0;
+    font-size: 13px;
+  }
+  .testmeet-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--fg-soft);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    min-width: 70px;
+  }
+  .testmeet-value {
+    color: var(--fg);
+    word-break: break-all;
+  }
+
+  .big-test-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 22px;
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.2s;
+    border: 1px solid var(--accent);
+  }
+  .big-test-btn:hover {
+    opacity: 0.92;
+    color: #fff;
+  }
+  .big-test-btn:active { transform: translateY(1px) }
+  .big-test-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .big-test-text { flex: 1 }
+  .big-test-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 3px;
+  }
+  .big-test-sub {
+    font-size: 12px;
+    opacity: 0.9;
+  }
+
+  .test-result-section {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--border);
+  }
+  .test-result-prompt {
+    font-size: 14px;
+    color: var(--fg);
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+
+  .result-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 500px) { .result-btns { grid-template-columns: 1fr } }
+  .result-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    color: var(--fg);
+    transition: all 0.2s;
+  }
+  .result-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -4px rgba(0,0,0,0.15);
+  }
+  .result-btn.ok:hover { border-color: var(--success); background: rgba(74,138,74,0.08) }
+  .result-btn.err:hover { border-color: var(--error); background: rgba(200,58,43,0.08) }
+  .rb-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .result-btn.ok .rb-icon { background: var(--success) }
+  .result-btn.err .rb-icon { background: var(--error) }
+  .rb-text {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .rb-text small {
+    display: block;
+    font-weight: normal;
+    color: var(--fg-soft);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  .result-prompt-2 {
+    font-size: 13px;
+    color: var(--fg-soft);
+    margin-bottom: 12px;
+  }
+  .result-issues {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .issue-chk {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+  }
+  .issue-chk:hover { border-color: var(--accent); background: var(--accent-soft) }
+  .issue-chk input { cursor: pointer; accent-color: var(--accent) }
+  .issue-chk input:checked + * { color: var(--accent); font-weight: 500 }
+
+  .result-confirmed {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    text-align: center;
+  }
+  .result-confirmed.ok { border-color: var(--success); background: rgba(74,138,74,0.06) }
+  .result-confirmed.err { border-color: var(--error); background: rgba(200,58,43,0.06) }
+  .result-confirmed-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 20px;
+  }
+  .result-confirmed.ok .result-confirmed-icon { background: var(--success) }
+  .result-confirmed.err .result-confirmed-icon { background: var(--error) }
+  .result-confirmed-text {
+    font-size: 14px;
+    color: var(--fg);
+    line-height: 1.6;
+  }
+
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  .media-preview {
+    margin-top: 10px;
+    display: none;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .media-preview.show { display: flex }
+  .media-preview video {
+    width: 200px;
+    height: 150px;
+    background: #000;
+    border-radius: 6px;
+    object-fit: cover;
+  }
+  .audio-meter {
+    width: 200px;
+    height: 30px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .audio-meter-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--success) 60%, var(--warn) 80%, var(--error));
+    transition: width 0.05s;
+  }
+
+  /* Unsupported platform notice */
+  .unsupported {
+    background: var(--accent-soft);
+    border: 1px solid var(--error);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .unsupported.show { display: block }
+  .unsupported .t {
+    color: var(--error);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .unsupported .s {
+    font-size: 13px;
+    color: var(--fg);
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+TC:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    Webex <span class="dot">·</span> 設備檢測
+    <span class="ver">v2.2.0</span>
+  </div>
+  <button class="theme-btn" id="themeToggle">切換主題</button>
+</div>
+
+<div class="wrap">
+
+  <!-- 案件資訊（從 URL 參數帶入） -->
+  <div class="case-banner" id="caseBanner" style="display:none"></div>
+
+  <!-- 不支援平台提示 -->
+  <div class="unsupported" id="unsupportedBanner">
+    <div class="t">⚠ 此設備不在支援範圍</div>
+    <div class="s" id="unsupportedDetail">本工具僅支援 Android、iPhone/iPad、Windows、macOS。請改用對應裝置進行檢測</div>
+  </div>
+
+  <!-- 總結卡 -->
+  <div class="card">
+    <h1>設備相容性檢測</h1>
+    <p class="lead">自動檢測你的設備是否符合 Webex 上課需求；遇到問題可一鍵將檢測結果回傳給顧問</p>
+
+    <div class="summary" id="summaryBox">
+      <div class="summary-icon checking" id="summaryIcon"><span class="spinner"></span></div>
+      <div class="summary-text">
+        <div class="title" id="summaryTitle">檢測中…</div>
+        <div class="detail" id="summaryDetail">正在分析你的設備環境</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 系統 -->
+  <div class="card">
+    <h2>系統環境</h2>
+    <div id="systemList"></div>
+  </div>
+
+  <!-- 瀏覽器 -->
+  <div class="card">
+    <h2>瀏覽器</h2>
+    <div id="browserList"></div>
+  </div>
+
+  <!-- 硬體 -->
+  <div class="card">
+    <h2>硬體規格</h2>
+    <div id="hardwareList"></div>
+  </div>
+
+  <!-- 網路 -->
+  <div class="card">
+    <h2>網路連線</h2>
+    <div id="networkList"></div>
+  </div>
+
+  <!-- 麥克風與鏡頭 -->
+  <div class="card">
+    <h2>麥克風與鏡頭</h2>
+    <p class="lead" style="margin-bottom: 14px">點擊下方按鈕進行實測，會請求權限以確認裝置可正常使用</p>
+    <div id="mediaList"></div>
+    <div class="btn-row">
+      <button class="btn primary" id="testMicBtn">測試麥克風</button>
+      <button class="btn primary" id="testCamBtn">測試鏡頭</button>
+      <button class="btn" id="stopMediaBtn" style="display:none">停止測試</button>
+    </div>
+    <div class="media-preview" id="mediaPreview">
+      <video id="videoPreview" autoplay playsinline muted></video>
+      <div>
+        <div style="font-size:11px;color:var(--fg-soft);margin-bottom:6px;font-family:'JetBrains Mono',monospace">音量偵測</div>
+        <div class="audio-meter"><div class="audio-meter-fill" id="audioMeter"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 下載 -->
+  <div class="card">
+    <h2>Webex 下載</h2>
+    <p class="lead" id="downloadLead">依你的設備自動標示推薦下載入口</p>
+    <div class="dl-grid" id="downloadGrid"></div>
+    <div class="disclaimer">
+      備註：網頁無法直接偵測 Webex App 是否已安裝。若已安裝請忽略下載提示，直接點選會議邀請連結即可
+    </div>
+  </div>
+
+  <!-- 最終驗證：實際進入測試會議 -->
+  <div class="card" id="finalTestCard">
+    <h2>最終驗證 · 進入測試會議</h2>
+    <p class="lead">
+      點下方按鈕進入 Webex 官方測試會議室，實際走完一次「加入會議 → 啟用麥克風與鏡頭」流程，確認你的設備能正常上課
+    </p>
+
+    <div class="testmeet-info">
+      <div class="testmeet-row">
+        <span class="testmeet-label">測試會議</span>
+        <span class="testmeet-value" id="testRoomDisplay">Webex 官方測試會議</span>
+      </div>
+      <div class="testmeet-row">
+        <span class="testmeet-label">使用方式</span>
+        <span class="testmeet-value">免登入、免密碼，可隨時進入</span>
+      </div>
+    </div>
+
+    <a class="big-test-btn" id="enterTestRoomBtn" href="https://www.webex.com/test-meeting.html" target="_blank" rel="noopener">
+      <div class="big-test-icon">▶</div>
+      <div class="big-test-text">
+        <div class="big-test-title">進入測試會議</div>
+        <div class="big-test-sub">會在新分頁開啟，測試完回到此頁回報結果</div>
+      </div>
+    </a>
+
+    <div class="test-result-section" id="testResultSection">
+      <div class="test-result-prompt">測試完成後，請回報結果：</div>
+
+      <!-- 第一階段：可 / 不可 -->
+      <div class="result-stage" id="resultStage1">
+        <div class="result-btns">
+          <button class="result-btn ok" data-result="ok">
+            <span class="rb-icon">✓</span>
+            <span class="rb-text">順利進入會議<br><small>看得到自己、聽得到聲音</small></span>
+          </button>
+          <button class="result-btn err" data-result="fail">
+            <span class="rb-icon">✗</span>
+            <span class="rb-text">無法順利進入<br><small>有問題需要協助</small></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 第二階段：詳細問題（不可時才顯示） -->
+      <div class="result-stage" id="resultStage2" style="display:none">
+        <div class="result-prompt-2">是哪個環節有問題？（可複選）</div>
+        <div class="result-issues" id="resultIssues">
+          <label class="issue-chk"><input type="checkbox" value="cannot-open"> 點連結後沒反應 / 打不開</label>
+          <label class="issue-chk"><input type="checkbox" value="no-app"> 系統要求安裝 App，但裝不起來</label>
+          <label class="issue-chk"><input type="checkbox" value="cannot-join"> App 開了但無法加入會議</label>
+          <label class="issue-chk"><input type="checkbox" value="no-mic"> 進去後麥克風沒聲音 / 沒人聽到我</label>
+          <label class="issue-chk"><input type="checkbox" value="no-cam"> 進去後鏡頭沒畫面 / 看不到我</label>
+          <label class="issue-chk"><input type="checkbox" value="no-audio"> 我聽不到對方 / 沒有聲音</label>
+          <label class="issue-chk"><input type="checkbox" value="laggy"> 畫面 / 聲音卡頓延遲嚴重</label>
+          <label class="issue-chk"><input type="checkbox" value="login-required"> 系統要求登入 Webex 帳號</label>
+          <label class="issue-chk"><input type="checkbox" value="other"> 其他（請於下方補充說明）</label>
+        </div>
+        <button class="btn" id="backStage1Btn" style="margin-top:10px">返回上一步</button>
+      </div>
+
+      <!-- 已選擇的回饋 -->
+      <div class="result-confirmed" id="resultConfirmed" style="display:none">
+        <div class="result-confirmed-icon" id="resultConfirmedIcon">✓</div>
+        <div class="result-confirmed-text" id="resultConfirmedText"></div>
+        <button class="btn" id="resetResultBtn" style="margin-top:10px">修改回報</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 回報 -->
+  <div class="card">
+    <h2>遇到問題？回傳檢測結果</h2>
+    <p class="lead">將完整檢測報告 + 設備資訊一鍵回傳給顧問，協助快速排除問題</p>
+    <div id="userNoteSection" style="margin-bottom: 12px">
+      <label style="display:block;font-size:12px;color:var(--fg-soft);margin-bottom:6px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px">補充說明（選填）</label>
+      <textarea id="userNote" placeholder="例：我點開連結後沒反應、麥克風測試聽不到聲音…" style="width:100%;padding:10px 12px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:14px;min-height:70px;resize:vertical"></textarea>
+    </div>
+    <div class="report-actions">
+      <button class="report-btn primary" id="sendGasBtn">
+        <div class="ic">↗</div>
+        <div class="tx">
+          <div class="t">回傳給顧問</div>
+          <div class="s">即時送出（推薦）</div>
+        </div>
+      </button>
+      <a class="report-btn" id="mailtoBtn" href="#">
+        <div class="ic">@</div>
+        <div class="tx">
+          <div class="t">以 Email 寄出</div>
+          <div class="s">開啟郵件 App 預填內容</div>
+        </div>
+      </a>
+    </div>
+    <div class="send-status" id="sendStatus"></div>
+    <div class="btn-row">
+      <button class="btn" id="copyReportBtn">複製檢測報告</button>
+      <button class="btn" id="rerunBtn">重新檢測</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Webex 設備檢測 v2.2.0 · Asia/Taipei · Android / iPad / iPhone / Windows / macOS
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const APP_VERSION = 'v2.2.0';
+window.APP_VERSION = APP_VERSION;
+
+// ===== 設定區（部署前修改） =====
+const GAS_ENDPOINT = ''; // ← 填入你的 GAS Web App URL（例 https://script.google.com/macros/s/AKfyc.../exec）
+const FALLBACK_EMAIL = 'consultant@etalking.com.tw'; // ← 填入顧問信箱
+// ================================
+
+// ===== URL 參數解析 =====
+const params = new URLSearchParams(window.location.search);
+const caseInfo = {
+  case: params.get('case') || '',           // 案件編號 / 學員代號
+  consultant: params.get('consultant') || '', // 顧問名稱
+  session: params.get('session') || '',      // 課程場次
+  member: params.get('member') || '',        // 學員姓名
+  email: params.get('email') || '',          // 收件信箱（覆蓋 FALLBACK_EMAIL）
+  testRoom: params.get('testRoom') || ''     // 測試會議室 URL（覆蓋預設）
+};
+
+// 預設 Webex 官方測試會議
+const DEFAULT_TEST_ROOM = 'https://www.webex.com/test-meeting.html';
+const TEST_ROOM_URL = caseInfo.testRoom || DEFAULT_TEST_ROOM;
+
+// 套用測試會議 URL
+{
+  const btn = document.getElementById('enterTestRoomBtn');
+  const display = document.getElementById('testRoomDisplay');
+  if (btn) btn.href = TEST_ROOM_URL;
+  if (display) {
+    if (caseInfo.testRoom) {
+      try {
+        const u = new URL(TEST_ROOM_URL);
+        display.textContent = `${u.hostname}${u.pathname.length > 1 ? u.pathname : ''}`;
+      } catch {
+        display.textContent = TEST_ROOM_URL;
+      }
+    }
+  }
+}
+
+// 顯示案件資訊橫幅
+const banner = document.getElementById('caseBanner');
+const fields = [];
+if (caseInfo.case) fields.push(['案件', caseInfo.case]);
+if (caseInfo.member) fields.push(['學員', caseInfo.member]);
+if (caseInfo.consultant) fields.push(['顧問', caseInfo.consultant]);
+if (caseInfo.session) fields.push(['場次', caseInfo.session]);
+if (fields.length > 0) {
+  banner.style.display = 'flex';
+  banner.innerHTML = fields.map(([k, v]) =>
+    `<div><span class="case-label">${k}</span>　<span class="case-value">${escapeHTML(v)}</span></div>`
+  ).join('');
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+}
+
+// ===== Theme =====
+const THEME_KEY = 'etalking_theme';
+const root = document.documentElement;
+function applyTheme(t) {
+  root.setAttribute('data-theme', t);
+  localStorage.setItem(THEME_KEY, t);
+}
+applyTheme(localStorage.getItem(THEME_KEY) || 'light');
+document.getElementById('themeToggle').addEventListener('click', () => {
+  applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+// ===== Toast =====
+const toastEl = document.getElementById('toast');
+function toast(msg, isError) {
+  toastEl.textContent = msg;
+  toastEl.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toastEl.classList.remove('show'), 2000);
+}
+
+function nowTaipei() {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  }).format(new Date()).replace('T', ' ');
+}
+
+// ===== Detection =====
+const ua = navigator.userAgent;
+let detected = {};
+
+function detectOS() {
+  const u = ua;
+  let os = 'Unknown', version = '', isMobile = false, supported = false;
+  let formFactor = 'unknown'; // phone | tablet | desktop | unknown
+  let formFactorLabel = '';
+  let formFactorConfidence = 'low'; // high | medium | low
+
+  // === iPhone（最明確）===
+  if (/iPhone|iPod/i.test(u) && !/iPad/i.test(u)) {
+    os = 'iOS'; isMobile = true; supported = true;
+    formFactor = 'phone';
+    formFactorLabel = 'iPhone';
+    formFactorConfidence = 'high';
+    const m = u.match(/OS\s([0-9_]+)/);
+    if (m) version = m[1].replace(/_/g, '.');
+  }
+  // === iPad（含 iPadOS 13+ 偽裝 Mac 的情況）===
+  else if (/iPad/i.test(u) || (/Macintosh/i.test(u) && 'ontouchend' in document && navigator.maxTouchPoints > 1)) {
+    os = 'iPadOS'; isMobile = true; supported = true;
+    formFactor = 'tablet';
+    formFactorLabel = 'iPad';
+    formFactorConfidence = /iPad/i.test(u) ? 'high' : 'medium';
+    const m = u.match(/OS\s([0-9_]+)/) || u.match(/Version\/([0-9.]+)/);
+    if (m) version = m[1].replace(/_/g, '.');
+  }
+  // === Android（手機 vs 平板：靠 Mobile 關鍵字）===
+  else if (/Android/i.test(u)) {
+    os = 'Android'; isMobile = true; supported = true;
+    const m = u.match(/Android\s([0-9.]+)/);
+    if (m) version = m[1];
+    // Google 官方建議：UA 含 "Mobile" → 手機；不含 → 平板
+    if (/Mobile/i.test(u)) {
+      formFactor = 'phone';
+      formFactorLabel = 'Android 手機';
+      formFactorConfidence = 'high';
+    } else {
+      formFactor = 'tablet';
+      formFactorLabel = 'Android 平板';
+      formFactorConfidence = 'high';
+    }
+  }
+  // === Windows（桌機 / 筆電不細分）===
+  else if (/Windows NT 10/i.test(u)) {
+    os = 'Windows'; version = '10/11'; supported = true;
+    formFactor = 'desktop';
+    formFactorLabel = 'Windows 電腦';
+    formFactorConfidence = 'high';
+  } else if (/Windows NT 6\.3/i.test(u)) {
+    os = 'Windows'; version = '8.1';
+    formFactor = 'desktop'; formFactorLabel = 'Windows 電腦'; formFactorConfidence = 'high';
+  } else if (/Windows NT 6\.[12]/i.test(u)) {
+    os = 'Windows'; version = '7/8';
+    formFactor = 'desktop'; formFactorLabel = 'Windows 電腦'; formFactorConfidence = 'high';
+  } else if (/Windows NT/i.test(u)) {
+    os = 'Windows'; version = '舊版';
+    formFactor = 'desktop'; formFactorLabel = 'Windows 電腦'; formFactorConfidence = 'high';
+  }
+  // === macOS（真桌機，已排除 iPad 偽裝）===
+  else if (/Mac OS X/i.test(u)) {
+    os = 'macOS'; supported = true;
+    const m = u.match(/Mac OS X\s([0-9_]+)/);
+    if (m) version = m[1].replace(/_/g, '.');
+    formFactor = 'desktop';
+    formFactorLabel = 'Mac 電腦';
+    formFactorConfidence = 'high';
+  }
+  // === 其他不支援平台 ===
+  else if (/Linux/i.test(u)) {
+    os = 'Linux';
+    formFactor = 'desktop'; formFactorLabel = 'Linux 電腦';
+  } else if (/CrOS/i.test(u)) {
+    os = 'ChromeOS';
+    formFactor = 'desktop'; formFactorLabel = 'Chromebook';
+  }
+
+  return { os, version, isMobile, supported, formFactor, formFactorLabel, formFactorConfidence };
+}
+
+function detectBrowser() {
+  const u = ua;
+  let name = 'Unknown', version = '';
+  if (/Edg\//.test(u)) { name = 'Edge'; const m = u.match(/Edg\/([0-9.]+)/); if (m) version = m[1] }
+  else if (/OPR\//.test(u)) { name = 'Opera'; const m = u.match(/OPR\/([0-9.]+)/); if (m) version = m[1] }
+  else if (/SamsungBrowser/.test(u)) { name = 'Samsung Internet'; const m = u.match(/SamsungBrowser\/([0-9.]+)/); if (m) version = m[1] }
+  else if (/Firefox\//.test(u)) { name = 'Firefox'; const m = u.match(/Firefox\/([0-9.]+)/); if (m) version = m[1] }
+  else if (/Chrome\//.test(u)) { name = 'Chrome'; const m = u.match(/Chrome\/([0-9.]+)/); if (m) version = m[1] }
+  else if (/Safari\//.test(u) && /Version\//.test(u)) { name = 'Safari'; const m = u.match(/Version\/([0-9.]+)/); if (m) version = m[1] }
+  return { name, version, major: parseInt(version) || 0 };
+}
+
+function checkOSCompat(osInfo) {
+  const { os, version } = osInfo;
+  const major = parseFloat(version) || 0;
+  if (os === 'Windows') {
+    if (version.includes('10') || version.includes('11')) return { status: 'ok', note: '符合 Webex 系統需求' };
+    return { status: 'warn', note: '建議升級至 Windows 10 或 11' };
+  }
+  if (os === 'macOS') {
+    if (major >= 10.15) return { status: 'ok', note: '符合 Webex 系統需求' };
+    return { status: 'warn', note: '建議升級至 macOS 10.15（Catalina）以上' };
+  }
+  if (os === 'Android') {
+    if (major >= 12) return { status: 'ok', note: '符合 Webex 系統需求' };
+    if (major >= 11) return { status: 'warn', note: 'Android 11 將於 2026 年中停止支援，建議升級' };
+    return { status: 'error', note: 'Android 10 以下不支援，請升級系統' };
+  }
+  if (os === 'iOS' || os === 'iPadOS') {
+    if (major >= 18) return { status: 'ok', note: '符合 Webex 系統需求' };
+    if (major >= 17) return { status: 'warn', note: 'iOS 17 將於 2026/7 起停止支援新版本，建議升級' };
+    if (major > 0) return { status: 'error', note: '建議升級至 iOS 18 以上' };
+    return { status: 'warn', note: '無法判斷 iOS 版本' };
+  }
+  return { status: 'warn', note: '無法辨識系統版本' };
+}
+
+function checkBrowserCompat(browser) {
+  const { name, major } = browser;
+  if (name === 'Chrome' && major >= 100) return { status: 'ok', note: '符合 Webex Web App 需求' };
+  if (name === 'Edge' && major >= 100) return { status: 'ok', note: '符合 Webex Web App 需求' };
+  if (name === 'Firefox' && major >= 100) return { status: 'ok', note: '符合 Webex Web App 需求' };
+  if (name === 'Safari' && major >= 14) return { status: 'ok', note: '符合 Webex Web App 需求' };
+  if (name === 'Samsung Internet') return { status: 'warn', note: '建議改用 Chrome 或安裝 Webex App' };
+  if (major > 0) return { status: 'warn', note: '瀏覽器版本可能過舊，建議更新' };
+  return { status: 'warn', note: '無法判斷瀏覽器版本' };
+}
+
+function renderItem(container, label, value, status, note) {
+  const iconMap = { ok: '✓', warn: '!', error: '✗', checking: '', idle: '?' };
+  const div = document.createElement('div');
+  div.className = 'item';
+  div.innerHTML = `
+    <div class="item-icon ${status}">${iconMap[status] || ''}</div>
+    <div class="item-body">
+      <div class="item-label">${escapeHTML(label)}</div>
+      <div class="item-value">${escapeHTML(value)}</div>
+      ${note ? `<div class="item-note ${status === 'error' ? 'error' : ''}">${escapeHTML(note)}</div>` : ''}
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+async function runDetection() {
+  detected = { items: [] };
+  ['systemList','browserList','hardwareList','networkList','mediaList'].forEach(id => {
+    document.getElementById(id).innerHTML = '';
+  });
+
+  const summaryIcon = document.getElementById('summaryIcon');
+  const summaryTitle = document.getElementById('summaryTitle');
+  const summaryDetail = document.getElementById('summaryDetail');
+  summaryIcon.className = 'summary-icon checking';
+  summaryIcon.innerHTML = '<span class="spinner"></span>';
+  summaryTitle.textContent = '檢測中…';
+  summaryDetail.textContent = '正在分析你的設備環境';
+
+  const issues = [];
+
+  // === System ===
+  const osInfo = detectOS();
+  detected.os = osInfo;
+
+  // 不支援平台提示
+  const unsupportedBanner = document.getElementById('unsupportedBanner');
+  if (!osInfo.supported) {
+    unsupportedBanner.classList.add('show');
+    document.getElementById('unsupportedDetail').textContent =
+      `偵測到 ${osInfo.os}${osInfo.version ? ' ' + osInfo.version : ''}，本工具僅支援 Android、iPhone/iPad、Windows、macOS`;
+  } else {
+    unsupportedBanner.classList.remove('show');
+  }
+
+  const osCheck = checkOSCompat(osInfo);
+  detected.osCheck = osCheck;
+  renderItem(document.getElementById('systemList'), '作業系統', `${osInfo.os} ${osInfo.version}`, osCheck.status, osCheck.note);
+  detected.items.push(['作業系統', `${osInfo.os} ${osInfo.version}`, osCheck.status, osCheck.note]);
+  if (osCheck.status !== 'ok') issues.push(osCheck.status);
+
+  const ffLabel = osInfo.formFactorLabel || (osInfo.isMobile ? '行動裝置' : '桌機 / 筆電');
+  const ffNote = osInfo.formFactorConfidence === 'medium' ? '（推測，UA 已被瀏覽器偽裝）' : '';
+  renderItem(document.getElementById('systemList'), '裝置類型', ffLabel, 'ok', ffNote);
+  detected.items.push(['裝置類型', ffLabel, 'ok', '']);
+  renderItem(document.getElementById('systemList'), '系統語言', navigator.language || '未知', 'ok', '');
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  renderItem(document.getElementById('systemList'), '時區', tz, 'ok', '');
+  detected.items.push(['語言', navigator.language || '未知', 'ok', '']);
+  detected.items.push(['時區', tz, 'ok', '']);
+
+  // === Browser ===
+  const browser = detectBrowser();
+  detected.browser = browser;
+  const browserCheck = checkBrowserCompat(browser);
+  detected.browserCheck = browserCheck;
+  renderItem(document.getElementById('browserList'), '瀏覽器', `${browser.name} ${browser.version}`, browserCheck.status, browserCheck.note);
+  detected.items.push(['瀏覽器', `${browser.name} ${browser.version}`, browserCheck.status, browserCheck.note]);
+  if (browserCheck.status !== 'ok') issues.push(browserCheck.status);
+
+  renderItem(document.getElementById('browserList'), 'Cookies', navigator.cookieEnabled ? '已啟用' : '未啟用',
+    navigator.cookieEnabled ? 'ok' : 'error', navigator.cookieEnabled ? '' : '請至瀏覽器設定啟用 Cookies');
+  detected.items.push(['Cookies', navigator.cookieEnabled ? '已啟用' : '未啟用', navigator.cookieEnabled ? 'ok' : 'error', '']);
+  if (!navigator.cookieEnabled) issues.push('error');
+
+  renderItem(document.getElementById('browserList'), 'JavaScript', '已啟用', 'ok', '');
+
+  // === Hardware ===
+  const dpr = window.devicePixelRatio || 1;
+  renderItem(document.getElementById('hardwareList'), '螢幕解析度', `${screen.width} × ${screen.height} @ ${dpr}x`, 'ok', '');
+  detected.items.push(['螢幕', `${screen.width}×${screen.height} @${dpr}x`, 'ok', '']);
+
+  const wW = window.innerWidth, wH = window.innerHeight;
+  const winOK = wW >= 500 && wH >= 500;
+  renderItem(document.getElementById('hardwareList'), '視窗大小', `${wW} × ${wH}`,
+    winOK ? 'ok' : 'warn', winOK ? '' : '視窗過小，Webex Web App 建議 500×500 以上');
+  detected.items.push(['視窗', `${wW}×${wH}`, winOK ? 'ok' : 'warn', '']);
+
+  const cores = navigator.hardwareConcurrency;
+  renderItem(document.getElementById('hardwareList'), 'CPU 核心數', cores ? `${cores} 核心` : '無法偵測',
+    cores >= 2 ? 'ok' : 'warn', cores < 2 ? 'Webex 建議雙核心以上' : '');
+  detected.items.push(['CPU', cores ? `${cores} 核心` : '未知', cores >= 2 ? 'ok' : 'warn', '']);
+
+  const mem = navigator.deviceMemory;
+  if (mem) {
+    renderItem(document.getElementById('hardwareList'), '記憶體（粗估）', `約 ${mem} GB`,
+      mem >= 4 ? 'ok' : 'warn', mem < 4 ? 'Webex 建議 4 GB 以上' : '');
+    detected.items.push(['RAM', `約 ${mem} GB`, mem >= 4 ? 'ok' : 'warn', '']);
+  } else {
+    renderItem(document.getElementById('hardwareList'), '記憶體', '瀏覽器未提供', 'idle', '此瀏覽器不支援 deviceMemory API');
+    detected.items.push(['RAM', '未提供', 'idle', '']);
+  }
+
+  // === Network ===
+  const onl = navigator.onLine;
+  renderItem(document.getElementById('networkList'), '連線狀態', onl ? '已連線' : '離線',
+    onl ? 'ok' : 'error', onl ? '' : '目前處於離線狀態');
+  detected.items.push(['連線', onl ? '已連線' : '離線', onl ? 'ok' : 'error', '']);
+  if (!onl) issues.push('error');
+
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (conn) {
+    const type = conn.effectiveType || '未知';
+    const downlink = conn.downlink ? `${conn.downlink} Mbps` : '未知';
+    const meets = conn.downlink ? conn.downlink >= 1.5 : true;
+    renderItem(document.getElementById('networkList'), '網路類型', `${type}　·　下行 ${downlink}`,
+      meets ? 'ok' : 'warn',
+      meets ? 'Webex 視訊建議 1.5 Mbps 以上' : '頻寬可能不足，視訊品質可能受影響');
+    detected.items.push(['網路', `${type} / ${downlink}`, meets ? 'ok' : 'warn', '']);
+    if (!meets) issues.push('warn');
+  } else {
+    renderItem(document.getElementById('networkList'), '網路詳情', '瀏覽器未提供', 'idle', '此瀏覽器不支援 NetworkInformation API');
+  }
+
+  // === Media (initial) ===
+  const hasGetUM = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  renderItem(document.getElementById('mediaList'), 'getUserMedia API', hasGetUM ? '可用' : '不可用',
+    hasGetUM ? 'ok' : 'error', hasGetUM ? '可進行麥克風 / 鏡頭實測' : '此瀏覽器不支援媒體 API');
+  detected.items.push(['MediaAPI', hasGetUM ? '可用' : '不可用', hasGetUM ? 'ok' : 'error', '']);
+  if (!hasGetUM) issues.push('error');
+
+  if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const mics = devices.filter(d => d.kind === 'audioinput').length;
+      const cams = devices.filter(d => d.kind === 'videoinput').length;
+      renderItem(document.getElementById('mediaList'), '麥克風裝置數', `偵測到 ${mics} 個`,
+        mics > 0 ? 'ok' : 'warn', mics === 0 ? '未偵測到麥克風' : '名稱需授權後才會顯示');
+      renderItem(document.getElementById('mediaList'), '鏡頭裝置數', `偵測到 ${cams} 個`,
+        cams > 0 ? 'ok' : 'warn', cams === 0 ? '未偵測到鏡頭' : '名稱需授權後才會顯示');
+      detected.items.push(['麥克風', `${mics} 個`, mics > 0 ? 'ok' : 'warn', '']);
+      detected.items.push(['鏡頭', `${cams} 個`, cams > 0 ? 'ok' : 'warn', '']);
+    } catch (e) {}
+  }
+
+  // === Summary ===
+  const hasError = issues.includes('error');
+  const hasWarn = issues.includes('warn');
+  if (hasError) {
+    summaryIcon.className = 'summary-icon error'; summaryIcon.innerHTML = '✗';
+    summaryTitle.textContent = '部分項目不符合需求';
+    summaryDetail.textContent = '請依下方標示處理後再加入會議，或回傳檢測結果給顧問協助';
+  } else if (hasWarn) {
+    summaryIcon.className = 'summary-icon warn'; summaryIcon.innerHTML = '!';
+    summaryTitle.textContent = '基本可用，有幾項建議';
+    summaryDetail.textContent = '可以加入會議，但部分項目建議優化';
+  } else {
+    summaryIcon.className = 'summary-icon ok'; summaryIcon.innerHTML = '✓';
+    summaryTitle.textContent = '設備符合需求';
+    summaryDetail.textContent = '可順利使用 Webex 上課';
+  }
+  detected.summary = { hasError, hasWarn };
+
+  renderDownloads(osInfo);
+  updateMailto();
+}
+
+function renderDownloads(osInfo) {
+  const grid = document.getElementById('downloadGrid');
+  const lead = document.getElementById('downloadLead');
+  grid.innerHTML = '';
+
+  const opts = [];
+  const { os } = osInfo;
+
+  if (os === 'Android') {
+    opts.push({ title: 'Google Play 下載', sub: '推薦給 Android 用戶',
+      url: 'https://play.google.com/store/apps/details?id=com.cisco.webex.meetings',
+      recommended: true, icon: '▶' });
+    opts.push({ title: 'Webex 官方下載頁', sub: 'webex.com/downloads',
+      url: 'https://www.webex.com/downloads.html', icon: '↓' });
+  } else if (os === 'iOS' || os === 'iPadOS') {
+    opts.push({ title: 'App Store 下載', sub: '推薦給 iPhone / iPad 用戶',
+      url: 'https://apps.apple.com/app/cisco-webex-meetings/id298844386',
+      recommended: true, icon: '' });
+    opts.push({ title: 'Webex 官方下載頁', sub: 'webex.com/downloads',
+      url: 'https://www.webex.com/downloads.html', icon: '↓' });
+  } else if (os === 'Windows') {
+    opts.push({ title: 'Webex 官方下載頁', sub: 'Windows 桌面版',
+      url: 'https://www.webex.com/downloads.html',
+      recommended: true, icon: '⊞' });
+    opts.push({ title: 'Microsoft Store', sub: '從 Store 安裝',
+      url: 'https://www.microsoft.com/store/apps/9wzdncrfj1q5', icon: '⊞' });
+  } else if (os === 'macOS') {
+    opts.push({ title: 'Webex 官方下載頁', sub: 'macOS 桌面版',
+      url: 'https://www.webex.com/downloads.html',
+      recommended: true, icon: '' });
+    opts.push({ title: 'App Store', sub: 'macOS 也可從 App Store',
+      url: 'https://apps.apple.com/app/cisco-webex-meetings/id833967564', icon: '' });
+  } else {
+    opts.push({ title: 'Webex 官方下載頁', sub: '所有平台版本',
+      url: 'https://www.webex.com/downloads.html',
+      recommended: true, icon: '↓' });
+  }
+
+  lead.textContent = `偵測到 ${osInfo.os} ${osInfo.version}，以下是建議的下載入口`;
+
+  for (const o of opts) {
+    const a = document.createElement('a');
+    a.className = 'dl-btn' + (o.recommended ? ' recommended' : '');
+    a.href = o.url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.innerHTML = `
+      <div class="dl-icon">${o.icon}</div>
+      <div class="dl-text">
+        <div class="dl-title">${o.title}</div>
+        <div class="dl-sub">${o.sub}</div>
+      </div>
+    `;
+    grid.appendChild(a);
+  }
+}
+
+// ===== Media tests =====
+let currentStream = null;
+let audioCtx = null, analyser = null, audioRAF = null;
+
+async function testMicrophone() {
+  stopMedia();
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    currentStream = stream;
+    document.getElementById('mediaPreview').classList.add('show');
+    document.getElementById('videoPreview').style.display = 'none';
+    document.getElementById('stopMediaBtn').style.display = 'inline-block';
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const mic = devices.find(d => d.kind === 'audioinput' && d.deviceId);
+    const micName = mic ? (mic.label || '未命名麥克風') : '無';
+    addOrUpdateMediaItem('mic-test', '麥克風實測', `已啟用：${micName}`, 'ok', '對麥克風說話可看到音量條跳動');
+    detected.micTest = { ok: true, name: micName };
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    src.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    const meter = document.getElementById('audioMeter');
+    function loop() {
+      analyser.getByteFrequencyData(data);
+      let sum = 0;
+      for (const v of data) sum += v;
+      meter.style.width = Math.min(100, (sum / data.length) * 2) + '%';
+      audioRAF = requestAnimationFrame(loop);
+    }
+    loop();
+    toast('✓ 麥克風測試已啟動');
+  } catch (e) {
+    addOrUpdateMediaItem('mic-test', '麥克風實測', '無法存取', 'error', `錯誤：${e.message}`);
+    detected.micTest = { ok: false, error: e.message };
+    toast('麥克風存取失敗', true);
+  }
+}
+
+async function testCamera() {
+  stopMedia();
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    currentStream = stream;
+    const video = document.getElementById('videoPreview');
+    video.srcObject = stream;
+    video.style.display = 'block';
+    document.getElementById('mediaPreview').classList.add('show');
+    document.getElementById('stopMediaBtn').style.display = 'inline-block';
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cam = devices.find(d => d.kind === 'videoinput' && d.deviceId);
+    const camName = cam ? (cam.label || '未命名鏡頭') : '無';
+    const track = stream.getVideoTracks()[0];
+    const settings = track ? track.getSettings() : {};
+    const res = settings.width && settings.height ? `${settings.width}×${settings.height}` : '未知';
+    addOrUpdateMediaItem('cam-test', '鏡頭實測', `已啟用：${camName}　·　${res}`, 'ok', '上方畫面為鏡頭預覽');
+    detected.camTest = { ok: true, name: camName, resolution: res };
+    toast('✓ 鏡頭測試已啟動');
+  } catch (e) {
+    addOrUpdateMediaItem('cam-test', '鏡頭實測', '無法存取', 'error', `錯誤：${e.message}`);
+    detected.camTest = { ok: false, error: e.message };
+    toast('鏡頭存取失敗', true);
+  }
+}
+
+function stopMedia() {
+  if (currentStream) {
+    currentStream.getTracks().forEach(t => t.stop());
+    currentStream = null;
+  }
+  if (audioRAF) { cancelAnimationFrame(audioRAF); audioRAF = null }
+  if (audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null }
+  document.getElementById('audioMeter').style.width = '0%';
+  document.getElementById('videoPreview').srcObject = null;
+  document.getElementById('videoPreview').style.display = 'none';
+  document.getElementById('mediaPreview').classList.remove('show');
+  document.getElementById('stopMediaBtn').style.display = 'none';
+}
+
+function addOrUpdateMediaItem(id, label, value, status, note) {
+  const list = document.getElementById('mediaList');
+  let item = document.getElementById(id);
+  const iconMap = { ok: '✓', warn: '!', error: '✗' };
+  const html = `
+    <div class="item-icon ${status}">${iconMap[status] || ''}</div>
+    <div class="item-body">
+      <div class="item-label">${escapeHTML(label)}</div>
+      <div class="item-value">${escapeHTML(value)}</div>
+      ${note ? `<div class="item-note ${status === 'error' ? 'error' : ''}">${escapeHTML(note)}</div>` : ''}
+    </div>
+  `;
+  if (item) { item.innerHTML = html }
+  else {
+    item = document.createElement('div');
+    item.id = id;
+    item.className = 'item';
+    item.innerHTML = html;
+    list.appendChild(item);
+  }
+}
+
+// ===== Build report =====
+function buildReportText() {
+  const note = document.getElementById('userNote').value.trim();
+  const lines = [];
+  lines.push(`【Webex 設備檢測報告】`);
+  lines.push(`時間：${nowTaipei()}　·　Asia/Taipei`);
+  lines.push('─'.repeat(40));
+  if (caseInfo.case) lines.push(`案件：${caseInfo.case}`);
+  if (caseInfo.member) lines.push(`學員：${caseInfo.member}`);
+  if (caseInfo.consultant) lines.push(`顧問：${caseInfo.consultant}`);
+  if (caseInfo.session) lines.push(`場次：${caseInfo.session}`);
+  if (caseInfo.case || caseInfo.member || caseInfo.consultant || caseInfo.session) {
+    lines.push('─'.repeat(40));
+  }
+  lines.push(`狀態：${detected.summary?.hasError ? '✗ 有錯誤' : detected.summary?.hasWarn ? '! 有警告' : '✓ 全部通過'}`);
+  lines.push('');
+  lines.push('〔檢測項目〕');
+  for (const [k, v, s] of (detected.items || [])) {
+    const mark = { ok: '✓', warn: '!', error: '✗', idle: '?' }[s] || ' ';
+    lines.push(`${mark} ${k}：${v}`);
+  }
+  if (detected.micTest) {
+    lines.push(`${detected.micTest.ok ? '✓' : '✗'} 麥克風實測：${detected.micTest.ok ? detected.micTest.name : detected.micTest.error}`);
+  }
+  if (detected.camTest) {
+    lines.push(`${detected.camTest.ok ? '✓' : '✗'} 鏡頭實測：${detected.camTest.ok ? `${detected.camTest.name} / ${detected.camTest.resolution}` : detected.camTest.error}`);
+  }
+  if (testResult) {
+    lines.push('');
+    lines.push('〔測試會議結果〕');
+    if (testResult.result === 'ok') {
+      lines.push('✓ 學員回報：順利進入會議，看得到自己、聽得到聲音');
+    } else {
+      lines.push('✗ 學員回報：無法順利進入');
+      if (testResult.issues && testResult.issues.length) {
+        lines.push('  問題項目：');
+        testResult.issues.forEach(k => lines.push(`  ・${ISSUE_LABELS[k] || k}`));
+      }
+    }
+    if (testResult.time) lines.push(`  回報時間：${testResult.time}`);
+  }
+  if (note) {
+    lines.push('');
+    lines.push('〔學員補充說明〕');
+    lines.push(note);
+  }
+  lines.push('');
+  lines.push(`UA：${navigator.userAgent}`);
+  lines.push(`URL：${window.location.href}`);
+  return lines.join('\n');
+}
+
+function buildReportPayload() {
+  return {
+    version: APP_VERSION,
+    timestamp: nowTaipei(),
+    iso: new Date().toISOString(),
+    caseInfo: caseInfo,
+    summary: detected.summary || {},
+    os: detected.os,
+    osCheck: detected.osCheck,
+    browser: detected.browser,
+    browserCheck: detected.browserCheck,
+    items: detected.items || [],
+    micTest: detected.micTest || null,
+    camTest: detected.camTest || null,
+    testResult: testResult || null,
+    testRoomUrl: TEST_ROOM_URL,
+    userNote: document.getElementById('userNote').value.trim(),
+    userAgent: navigator.userAgent,
+    url: window.location.href,
+    screen: { w: screen.width, h: screen.height, dpr: window.devicePixelRatio },
+    window: { w: window.innerWidth, h: window.innerHeight },
+    cores: navigator.hardwareConcurrency,
+    memory: navigator.deviceMemory,
+    cookieEnabled: navigator.cookieEnabled,
+    online: navigator.onLine,
+    language: navigator.language
+  };
+}
+
+// ===== Send to GAS =====
+async function sendToGAS() {
+  const btn = document.getElementById('sendGasBtn');
+  const status = document.getElementById('sendStatus');
+
+  if (!GAS_ENDPOINT) {
+    status.className = 'send-status show error';
+    status.textContent = '✗ 尚未設定 GAS 端點，請使用 Email 寄出，或聯繫顧問協助設定';
+    toast('GAS 未設定', true);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.querySelector('.t').innerHTML = '送出中…';
+  status.className = 'send-status show';
+  status.textContent = '正在傳送…';
+
+  try {
+    const payload = buildReportPayload();
+    // GAS Web App 用 text/plain 避免 CORS preflight
+    const res = await fetch(GAS_ENDPOINT, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    if (res.ok) {
+      status.className = 'send-status show ok';
+      status.textContent = `✓ 已成功回傳給顧問　·　${nowTaipei()}`;
+      btn.querySelector('.t').textContent = '已送出';
+      btn.querySelector('.s').textContent = `回應：${text.slice(0, 60)}`;
+      toast('✓ 已回傳給顧問');
+    } else {
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+  } catch (e) {
+    status.className = 'send-status show error';
+    status.textContent = `✗ 回傳失敗：${e.message}　·　請改用 Email 寄出`;
+    btn.disabled = false;
+    btn.querySelector('.t').textContent = '回傳給顧問';
+    btn.querySelector('.s').textContent = '即時送出（推薦）';
+    toast('回傳失敗，請用 Email', true);
+  }
+}
+
+// ===== Build mailto =====
+function updateMailto() {
+  const to = caseInfo.email || FALLBACK_EMAIL;
+  const subjectParts = ['Webex 設備檢測'];
+  if (caseInfo.case) subjectParts.push(`[${caseInfo.case}]`);
+  if (caseInfo.member) subjectParts.push(caseInfo.member);
+  const subject = subjectParts.join(' ');
+  const body = buildReportText();
+  const href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const mailto = document.getElementById('mailtoBtn');
+  mailto.href = href;
+  mailto.querySelector('.s').textContent = `寄至 ${to}`;
+}
+
+// ===== 最終驗證：測試會議結果回報（兩階段） =====
+const ISSUE_LABELS = {
+  'cannot-open': '點連結後沒反應 / 打不開',
+  'no-app': '系統要求安裝 App，但裝不起來',
+  'cannot-join': 'App 開了但無法加入會議',
+  'no-mic': '進去後麥克風沒聲音 / 沒人聽到我',
+  'no-cam': '進去後鏡頭沒畫面 / 看不到我',
+  'no-audio': '我聽不到對方 / 沒有聲音',
+  'laggy': '畫面 / 聲音卡頓延遲嚴重',
+  'login-required': '系統要求登入 Webex 帳號',
+  'other': '其他'
+};
+
+let testResult = null; // null | { result: 'ok'|'fail', issues: [], time }
+
+function showStage1() {
+  document.getElementById('resultStage1').style.display = 'block';
+  document.getElementById('resultStage2').style.display = 'none';
+  document.getElementById('resultConfirmed').style.display = 'none';
+}
+
+function showStage2() {
+  document.getElementById('resultStage1').style.display = 'none';
+  document.getElementById('resultStage2').style.display = 'block';
+  document.getElementById('resultConfirmed').style.display = 'none';
+}
+
+function showConfirmed(result, issues) {
+  document.getElementById('resultStage1').style.display = 'none';
+  document.getElementById('resultStage2').style.display = 'none';
+  const box = document.getElementById('resultConfirmed');
+  const icon = document.getElementById('resultConfirmedIcon');
+  const text = document.getElementById('resultConfirmedText');
+  box.style.display = 'block';
+  if (result === 'ok') {
+    box.classList.remove('err'); box.classList.add('ok');
+    icon.textContent = '✓';
+    text.innerHTML = '已記錄：<strong>順利進入會議</strong><br>下方一併送出給顧問即可';
+  } else {
+    box.classList.remove('ok'); box.classList.add('err');
+    icon.textContent = '✗';
+    const issueList = (issues || []).map(k => '・' + ISSUE_LABELS[k]).join('<br>');
+    text.innerHTML = '已記錄：<strong>無法順利進入</strong><br>' +
+      (issueList ? `<div style="margin-top:8px;text-align:left;font-size:13px">${issueList}</div>` : '') +
+      '<div style="margin-top:8px;font-size:12px;color:var(--fg-soft)">下方一併送出給顧問即可</div>';
+  }
+}
+
+document.querySelectorAll('.result-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const result = btn.dataset.result;
+    if (result === 'ok') {
+      testResult = { result: 'ok', issues: [], time: nowTaipei() };
+      showConfirmed('ok', []);
+      toast('✓ 已記錄');
+    } else {
+      // 進入第二階段
+      showStage2();
+    }
+  });
+});
+
+document.getElementById('backStage1Btn').addEventListener('click', showStage1);
+
+// 「不可」第二階段，勾選後即時更新（不需要再按確認）
+document.getElementById('resultIssues').addEventListener('change', () => {
+  const issues = Array.from(document.querySelectorAll('#resultIssues input:checked')).map(c => c.value);
+  testResult = { result: 'fail', issues, time: nowTaipei() };
+});
+
+// 第二階段如果有勾選任何項，提供一顆「完成回報」（用 input 變更觸發即時，但仍提供確認鈕）
+const stage2 = document.getElementById('resultStage2');
+const confirmBtn = document.createElement('button');
+confirmBtn.className = 'btn primary';
+confirmBtn.textContent = '完成回報';
+confirmBtn.style.marginTop = '12px';
+confirmBtn.style.marginLeft = '8px';
+confirmBtn.addEventListener('click', () => {
+  const issues = Array.from(document.querySelectorAll('#resultIssues input:checked')).map(c => c.value);
+  if (issues.length === 0) {
+    toast('請至少勾選一項問題', true);
+    return;
+  }
+  testResult = { result: 'fail', issues, time: nowTaipei() };
+  showConfirmed('fail', issues);
+  toast('已記錄回報');
+});
+stage2.appendChild(confirmBtn);
+
+document.getElementById('resetResultBtn').addEventListener('click', () => {
+  testResult = null;
+  document.querySelectorAll('#resultIssues input').forEach(c => c.checked = false);
+  showStage1();
+});
+
+// ===== Bind =====
+document.getElementById('sendGasBtn').addEventListener('click', sendToGAS);
+document.getElementById('rerunBtn').addEventListener('click', () => { stopMedia(); runDetection() });
+document.getElementById('testMicBtn').addEventListener('click', testMicrophone);
+document.getElementById('testCamBtn').addEventListener('click', testCamera);
+document.getElementById('stopMediaBtn').addEventListener('click', () => { stopMedia(); toast('已停止測試') });
+document.getElementById('userNote').addEventListener('input', updateMailto);
+document.getElementById('copyReportBtn').addEventListener('click', async () => {
+  const txt = buildReportText();
+  try { await navigator.clipboard.writeText(txt); toast('✓ 報告已複製'); }
+  catch { toast('複製失敗', true) }
+});
+
+// ===== Init =====
+runDetection();
+</script>
+</body>
+</html>
